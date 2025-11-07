@@ -1,0 +1,7 @@
+model_name: FeatherJudge
+python_version: py312
+resources:
+  accelerator: null
+  cpu: '1'
+  memory: 2Gi
+  use_gpu: false
