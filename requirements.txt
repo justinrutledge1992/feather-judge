@@ -24,7 +24,7 @@ distlib==0.4.0
 distro==1.9.0
 executing==2.2.1
 filelock==3.20.0
--e git+ssh://git@github.com/justinrutledge1992/feather-judge.git@53891ed1709a2250ebdd67bb67dfd377b5a890d5#egg=flow_judge
+flow-judge @ git+https://github.com/justinrutledge1992/feather-judge.git@14e29309dc1d904de2f02d02a21f396401c7402f
 frozenlist==1.8.0
 fsspec==2025.10.0
 google-api-core==2.28.1
