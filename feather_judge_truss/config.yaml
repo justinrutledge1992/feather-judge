@@ -28,8 +28,7 @@ model_name: FeatherJudge
 # Must be one of the allowed enums for your Truss version
 python_version: py312
 
-requirements:
-  - -r requirements.txt
+requirements_file: requirements.txt
 
 resources:
   accelerator: H100

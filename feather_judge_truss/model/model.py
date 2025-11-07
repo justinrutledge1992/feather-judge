@@ -1,131 +1,75 @@
-import threading
-from typing import Any, Dict
-
+# model.py
 from flow_judge import EvalInput, FlowJudge
 from flow_judge.metrics import CustomMetric, RubricItem
-from flow_judge.models.huggingface import Hf  # adjust if your fork places it elsewhere
-
-_JUDGE = None
-_JUDGE_LOCK = threading.Lock()
 
 
-def _build_continuity_metric() -> CustomMetric:
-    return CustomMetric(
-        name="Story Continuity",
-        criteria=(
-            "Evaluate how well the current text continues a story from the previous text. "
-            "Refer to the output as current text and the input as previous text. "
-            "Do not refer to an input or output."
-        ),
-        rubric=[
-            RubricItem(
-                score=1,
-                description=(
-                    "No continuity. Very different in theme, tone, and content. "
-                    "New elements do not make sense in the context of the story."
-                ),
+class Model:
+    def __init__(self, **kwargs):
+        """
+        This runs once when the model container is initialized.
+        Avoid heavy loading here; Baseten will call `load()` next.
+        """
+        self.judge = None
+        self.metric = None
+
+    def load(self):
+        """
+        Called once at startup. Initialize your metric and FlowJudge here.
+        You can also load weights or any other setup resources.
+        """
+        # Define your custom metric
+        continuity_metric = CustomMetric(
+            name="Story Continuity",
+            criteria=(
+                "Evaluate how well the current text continues a story from the previous text. "
+                "Refer to the output as current text and the input as previous text. "
+                "Do not refer to an input or output."
             ),
-            RubricItem(
-                score=2,
-                description=(
-                    "Poor continuity. Somewhat different in theme, tone, and content. "
-                    "New elements do not make sense in the context of the story."
-                ),
-            ),
-            RubricItem(
-                score=3,
-                description=(
-                    "Some continuity. Somewhat aligned and somewhat different in theme, "
-                    "tone, and content. New elements make sense in the context of the story."
-                ),
-            ),
-            RubricItem(
-                score=4,
-                description=(
-                    "Good continuity. Aligned in theme, tone, and content. "
-                    "New elements make sense in the context of the story."
-                ),
-            ),
-            RubricItem(
-                score=5,
-                description=(
-                    "Excellent continuity. Very aligned in theme, tone, and content. "
-                    "New elements make sense in the context of the story."
-                ),
-            ),
-        ],
-        required_inputs=["previous_text"],
-        required_output="current_text",
-    )
-
-
-def _build_judge() -> FlowJudge:
-    """
-    Build the FlowJudge instance using an HF-backed model.
-    Runs inside the Baseten container. No legacy Baseten adapter.
-    """
-
-    backend = Hf(
-        model_name="flowaicom/Flow-Judge-v0.1-AWQ",  # or your own checkpoint
-        max_new_tokens=256,
-        temperature=0.1,
-        top_p=0.9,
-    )
-
-    metric = _build_continuity_metric()
-
-    return FlowJudge(
-        metric=metric,
-        model=backend,
-    )
-
-
-def load_model():
-    """
-    Called once at container startup.
-    Returns a cached FlowJudge instance.
-    """
-    global _JUDGE
-    with _JUDGE_LOCK:
-        if _JUDGE is None:
-            print("[FeatherJudge] Initializing FlowJudge...")
-            _JUDGE = _build_judge()
-    return _JUDGE
-
-
-def predict(model: FlowJudge, request: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Expected request JSON:
-        {
-          "previous_text": "...",
-          "current_text": "..."
-        }
-
-    Returns:
-        {
-          "score": <numeric>,
-          "feedback": "<string>"
-        }
-    """
-    if not isinstance(request, dict):
-        raise ValueError("Request body must be a JSON object.")
-
-    previous_text = request.get("previous_text")
-    current_text = request.get("current_text")
-
-    if not previous_text or not current_text:
-        raise ValueError(
-            "Both 'previous_text' and 'current_text' must be provided in the request."
+            rubric=[
+                RubricItem(score=1, description="No continuity. Very different in theme, tone, and content. New elements do not make sense in the context of the story."),
+                RubricItem(score=2, description="Poor continuity. Somewhat different in theme, tone, and content. New elements do not make sense in the context of the story."),
+                RubricItem(score=3, description="Some continuity. Somewhat aligned and somewhat different in theme, tone, and content. New elements make sense in the context of the story."),
+                RubricItem(score=4, description="Good continuity. Aligned in theme, tone, and content. New elements make sense in the context of the story."),
+                RubricItem(score=5, description="Excellent continuity. Very aligned in theme, tone, and content. New elements make sense in the context of the story."),
+            ],
+            required_inputs=["previous_text"],
+            required_output="current_text",
         )
 
-    eval_input = EvalInput(
-        inputs=[{"previous_text": previous_text}],
-        output={"current_text": current_text},
-    )
+        # Initialize FlowJudge (using default local inference, not Baseten adapter)
+        self.judge = FlowJudge(metric=continuity_metric)
+        self.metric = continuity_metric
 
-    result = model.evaluate(eval_input, save_results=False)
+        print("✅ FlowJudge model loaded successfully in Baseten environment.")
 
-    return {
-        "score": result.score,
-        "feedback": result.feedback,
-    }
+    def predict(self, model_input):
+        """
+        Called for each inference request.
+        Expects a JSON payload like:
+        {
+            "previous_text": "...",
+            "current_text": "..."
+        }
+        Returns a dictionary with feedback and score.
+        """
+        if not self.judge:
+            raise RuntimeError("Model not loaded. Ensure `load()` was called before prediction.")
+
+        # Extract user input
+        previous_text = model_input.get("previous_text", "")
+        current_text = model_input.get("current_text", "")
+
+        # Build evaluation input
+        eval_input = EvalInput(
+            inputs=[{"previous_text": previous_text}],
+            output={"current_text": current_text},
+        )
+
+        # Run the evaluation
+        result = self.judge.evaluate(eval_input, save_results=False)
+
+        # Return feedback and score
+        return {
+            "feedback": result.feedback,
+            "score": result.score,
+        }
