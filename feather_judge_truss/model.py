@@ -1,36 +1,14 @@
-# model.py
-#
-# Truss entrypoint for Feather-Judge / Flow-Judge style evaluation on Baseten.
-# - Uses a custom "Story Continuity" metric.
-# - Uses an HF-backed model wrapper (no legacy Baseten adapter).
-# - Exposes a simple JSON API:
-#       {
-#           "previous_text": "...",
-#           "current_text": "..."
-#       }
-#   ->
-#       {
-#           "score": <int|float>,
-#           "feedback": "<string>"
-#       }
-
-from typing import Any, Dict
 import threading
+from typing import Any, Dict
 
-from flow_judge import EvalInput, FlowJudge  # from your feather-judge fork
+from flow_judge import EvalInput, FlowJudge
 from flow_judge.metrics import CustomMetric, RubricItem
-from flow_judge.models.huggingface import Hf  # HF backend, safe & local to the container
+from flow_judge.models.huggingface import Hf
 
-# If your fork exposes Hf somewhere slightly different, update this import accordingly.
-
-
-# ---------- Global singleton ----------
-
+# Global singleton + lock so the model loads once per container
 _JUDGE = None
 _JUDGE_LOCK = threading.Lock()
 
-
-# ---------- Metric / rubric ----------
 
 def _build_continuity_metric() -> CustomMetric:
     return CustomMetric(
@@ -58,8 +36,8 @@ def _build_continuity_metric() -> CustomMetric:
             RubricItem(
                 score=3,
                 description=(
-                    "Some continuity. Somewhat aligned and somewhat different in theme, tone, "
-                    "and content. New elements make sense in the context of the story."
+                    "Some continuity. Somewhat aligned and somewhat different in theme, "
+                    "tone, and content. New elements make sense in the context of the story."
                 ),
             ),
             RubricItem(
@@ -82,28 +60,17 @@ def _build_continuity_metric() -> CustomMetric:
     )
 
 
-# ---------- Model backend (no Baseten adapter) ----------
-
-def _build_model():
+def _build_judge() -> FlowJudge:
     """
-    Construct the underlying judge model WITHOUT using flow_judge's Baseten adapter.
-
-    We use the Hugging Face backend here so that:
-    - Truss can download & serve it normally on Baseten infra.
-    - We avoid the stale Baseten integration in the original library.
+    Build the FlowJudge instance using an HF backend.
+    No Baseten adapter. This runs inside the Baseten container.
     """
 
-    # Pick a model compatible with your environment.
-    # For the actual Flow-Judge weights, adapt to your fork if needed:
-    # e.g. "flowaicom/Flow-Judge-v0.1" or your own fine-tuned judge.
-    #
-    # Keep generation params conservative & deterministic-ish for evaluation.
+    # Pick your evaluation model here.
+    # You can swap this to your own HF checkpoint or the original Flow-Judge weights.
+    # Make sure the corresponding requirement is in requirements.txt.
     model = Hf(
-        model_name="flowaicom/Flow-Judge-v0.1",
-        # Depending on your fork's Hf signature, you might pass:
-        # dtype="bfloat16",
-        # device_map="auto",
-        # trust_remote_code=True,
+        model_name="flowaicom/Flow-Judge-v0.1-AWQ",
         max_new_tokens=256,
         temperature=0.1,
         top_p=0.9,
@@ -111,48 +78,38 @@ def _build_model():
 
     metric = _build_continuity_metric()
 
-    judge = FlowJudge(
+    return FlowJudge(
         metric=metric,
         model=model,
     )
 
-    return judge
-
-
-# ---------- Truss hooks ----------
 
 def load_model():
     """
-    Called once when the Baseten/Truss container starts.
-
-    We build and cache a global FlowJudge instance so subsequent predict()
-    calls are cheap.
+    Called once at container startup.
+    Returns the FlowJudge instance (cached globally).
     """
     global _JUDGE
     with _JUDGE_LOCK:
         if _JUDGE is None:
-            _JUDGE = _build_model()
+            _JUDGE = _build_judge()
     return _JUDGE
 
 
-def predict(model, request: Dict[str, Any]) -> Dict[str, Any]:
+def predict(model: FlowJudge, request: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Truss predict() entrypoint.
-
-    Expected input JSON:
+    Baseten/Truss entrypoint.
+    Expects:
         {
-          "previous_text": "USER INPUT 1",
-          "current_text": "USER INPUT 2"
+          "previous_text": "...",
+          "current_text": "..."
         }
-
     Returns:
         {
           "score": <numeric>,
-          "feedback": "<text explanation from the judge model>"
+          "feedback": "<string>"
         }
     """
-
-    # Basic validation
     if not isinstance(request, dict):
         raise ValueError("Request body must be a JSON object.")
 
@@ -164,7 +121,6 @@ def predict(model, request: Dict[str, Any]) -> Dict[str, Any]:
             "Both 'previous_text' and 'current_text' must be provided in the request."
         )
 
-    # Map into EvalInput following your metric's required schema.
     eval_input = EvalInput(
         inputs=[{"previous_text": previous_text}],
         output={"current_text": current_text},
@@ -172,7 +128,7 @@ def predict(model, request: Dict[str, Any]) -> Dict[str, Any]:
 
     result = model.evaluate(eval_input, save_results=False)
 
-    # FlowJudge result usually has .score and .feedback; adjust if your fork differs.
+    # Adjust attribute names if your fork differs
     return {
         "score": result.score,
         "feedback": result.feedback,
