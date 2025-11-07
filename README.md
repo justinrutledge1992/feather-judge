@@ -1,3 +1,5 @@
+NOTE: this is for personal testing on a project where I am attempting to edit this model. I did not crate flow-judge. For more information on the main version of flow-judge see https://github.com/flowaicom/flow-judge/
+
 # `flow-judge`
 
 <p align="center">
@@ -390,3 +392,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Acknowledgments
 
 Flow-Judge is developed and maintained by the Flow AI team. We appreciate the contributions and feedback from the AI community in making this tool more robust and versatile.
+
