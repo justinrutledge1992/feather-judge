@@ -1,5 +1,5 @@
-BASETEN_API_KEY = "SPECIFIC_API_KEY" # Add your private API key
-MODEL_ID = "SPECIFIC_MODEL_ID" # Provide the specific Feather Judge model ID
+BASETEN_API_KEY = "" # Add your private API key
+MODEL_ID = "" # Provide the specific Feather Judge model ID
 DEPLOYMENT_TYPE = "development" # Should be "development" or "production"
 
 def build_continuity_prompt(previous_text: str,
@@ -205,11 +205,127 @@ Oliver stumbled after him, heart pounding, lantern glowing bright and urgent.
 Behind them, the massive creature exhaled, and the earth trembled—
 as if something far deeper below had begun to stir in response."""
 
-current_text_bad = """Jimmy bought a luagh from a bottl1!!!"""
+current_text_bad = """Oliver quickly learned two things while jogging behind Fenril:
+
+The little green fuzz-ball could move like he was being chased by a swarm of electrified bees.
+
+Silver trees are extremely rude, because their branches like to poke you in the face for fun.
+
+“Can we—wait—a second?” Oliver wheezed.
+
+“No time!” Fenril squeaked, leaping over a log that Oliver absolutely did not leap over so much as trip over and slide down like a sad toboggan. “The Queen needs to see you!”
+
+“All right,” Oliver muttered as he peeled moss off his forehead, “but if she asks why I look like I lost a wrestling match with a salad, I’m blaming you.”
+
+They burst out onto a ridge overlooking an enormous hollow in the earth. It looked like someone had dropped a meteor, then politely tidied up the edges with landscaping tools.
+
+And smack dab in the middle was what Oliver initially thought was a giant rock formation.
+
+Then the rock exhaled.
+
+Loudly.
+
+Like a snoring walrus.
+
+Oliver flinched so hard he almost threw the lantern into orbit.
+
+“Fenril,” he whispered, “tell me that isn’t alive.”
+
+Fenril puffed up proudly. “Oh, that most certainly is alive. That’s Thalyrix, Bound Keeper of the Root-Deep Paths!”
+
+Thalyrix rumbled. The “rock” began to uncurl, sending trees tumbling down the side of its enormous body like startled squirrels.
+
+Oliver yelped and hid behind Fenril, who was approximately towel-sized and therefore useless.
+
+The creature finally lifted its massive head, blinking awake like someone who’d been rudely shaken during the best nap of their life. Two golden eyes the size of dinner plates focused on Oliver.
+
+“WHO DISTURBS MY SLUMBER?” the creature boomed.
+
+Fenril immediately sucked in a breath the way someone does before giving a long speech and announced:
+
+“We do! But mostly him!”
+
+He pointed directly at Oliver.
+
+Oliver jabbed a finger at himself. “I—I—look, I didn’t even know you were here! This is a major miscommunication!”
+
+Thalyrix lowered his enormous snout until Oliver could see his own terrified reflection in its scales.
+
+“A human,” the beast intoned.
+“Tiny.”
+“Squishy.”
+“Extremely edible.”
+
+Oliver screamed like he’d swallowed a trumpet.
+
+Fenril shook his head. “No no no, Great Thalyrix! Not edible! He’s holding the Waylight! That means he’s chosen!”
+
+Thalyrix stared at the glowing lantern, leaning in until Oliver had no choice but to back up—straight into a tree root that rose suspiciously like a speed bump.
+
+The lantern pulsed.
+
+Thalyrix hummed thoughtfully.
+
+“Ahhh. A Waylight-bearer.”
+“Interesting.”
+“Still edible.”
+
+“Can we stop saying edible?” Oliver squeaked.
+
+Thalyrix didn’t stop—he leaned in closer again until his golden eyes filled Oliver’s entire field of vision.
+
+“DO YOU HEAR THE WHISPERS?”
+
+Oliver blinked. “I… no? Should I?”
+
+The lantern suddenly vibrated, and then:
+
+whisper whisper whisper whisper
+
+Oliver froze. “Okay, I hear them. Yep. Definitely hearing them. Are they supposed to sound like spooky gossip spread by ghosts who are very bad at whispering secretly?”
+
+Fenril slapped both tiny hands over his muzzle, horrified. “Oliver! You don’t insult mystical cosmic warnings!”
+
+Thalyrix snorted, blasting Oliver’s hair straight upward like he’d walked under a hand dryer.
+
+“The Rift awakens,” Thalyrix boomed.
+“The worlds drift.”
+“Dark footsteps follow.”
+
+“Footsteps?!” Oliver yelped. “From WHERE? And HOW BIG?”
+
+Thalyrix raised one colossal brow ridge. “Bigger than you.”
+
+“That could be anything,” Oliver protested. “Grasshoppers are bigger than me in this world!”
+
+Thalyrix continued solemnly:
+“Find the Queen of Silver Roots. She alone can protect you.”
+
+Fenril tugged on Oliver’s sleeve. “And she’s less likely to eat you!”
+
+“STOP SAYING THAT!” Oliver cried.
+
+Thalyrix slowly settled back into the dirt like someone deflating a parade balloon.
+
+“Go… quickly,” he rumbled. “Before I fall asleep and accidentally roll over.”
+
+Oliver’s face went pale. “Roll over?”
+
+Fenril screamed, “RUN!”
+
+Oliver didn’t need to be told twice. He sprinted after Fenril while Thalyrix gave a final earth-shaking snore, curling back under the roots with the grace of a toppled mountain.
+
+As Oliver stumbled into the trees, hair still standing straight up, Fenril squeaked:
+
+“Well! That went better than expected!”
+
+Oliver shot him a glare. “We have very different definitions of ‘better.’”
+
+Behind them, something deep below the ground rumbled softly—like it was laughing."""
 
 criteria = (
     "Evaluate how well the current text continues the story from the previous text. "
-    "Focus on tone, theme, narrative flow, character consistency, and logical coherence. "
+    "Focus on tone, theme, narrative flow, and logical coherence. "
 )
 
 rubric = """
@@ -222,7 +338,7 @@ rubric = """
 
 flow_judge_prompt = build_continuity_prompt(
     previous_text,
-    current_text_bad,
+    current_text_bad, # use this or current_text_bad for very different responses
     criteria,
     rubric
 )
