@@ -1,5 +1,5 @@
-BASETEN_API_KEY = "N1NlNpl2.R7uNIzMKMLa4rrJGnboKaicOvQwPscdA"
-MODEL_ID = "6wg7xxow"
+BASETEN_API_KEY = "SPECIFIC_API_KEY" # Add your private API key
+MODEL_ID = "SPECIFIC_MODEL_ID" # Provide the specific Feather Judge model ID
 DEPLOYMENT_TYPE = "development" # Should be "development" or "production"
 
 def build_continuity_prompt(previous_text: str,
